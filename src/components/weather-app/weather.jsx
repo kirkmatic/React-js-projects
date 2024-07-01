@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './weather.css';
 import search_icon from '../assets/search.png';
 import clear_icon from '../assets/clear.png';
@@ -18,72 +18,92 @@ const Weather = () => {
     temperature: "24°C",
     location: "Manila",
   });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [error, setError] = useState(null);
 
-  /*Search Function from the api */
+  const weatherIcons = {
+    "01d": clear_icon,
+    "01n": clear_icon,
+    "02d": cloud_icon,
+    "02n": cloud_icon,
+    "03d": drizzle_icon,
+    "03n": drizzle_icon,
+    "04d": drizzle_icon,
+    "04n": drizzle_icon,
+    "09d": rain_icon,
+    "09n": rain_icon,
+    "10d": rain_icon,
+    "10n": rain_icon,
+    "13d": snow_icon,
+    "13n": snow_icon,
+  };
+
   const search = async () => {
-    const element = document.getElementsByClassName("searchinput");
-    if (element[0].value === "") {
-      return 0;
+    if (!searchQuery) {
+      return;
     }
-    let url = `https://api.openweathermap.org/data/2.5/weather?q=${element[0].value}&units=Metric&appid=${api_key}`;
-    
+
+    const url = `https://api.openweathermap.org/data/2.5/weather?q=${searchQuery}&units=metric&appid=${api_key}`;
+
     try {
       const response = await fetch(url);
       const data = await response.json();
-      
-      setWeatherData({
-        humidity: data.main.humidity + " %",
-        windSpeed: Math.floor(data.wind.speed)+ " km/h",
-        temperature: Math.floor(data.main.temp) + "°C",
-        location: data.name,
-      });
-      
-      const weatherIcon = data.weather[0].icon;
-      if (weatherIcon === "01d" || weatherIcon === "01n") {
-        setWicon(clear_icon);
-      } else if (weatherIcon === "02d" || weatherIcon === "02n") {
-        setWicon(cloud_icon);
-      } else if (weatherIcon === "03d" || weatherIcon === "03n") {
-        setWicon(drizzle_icon);
-      } else if (weatherIcon === "04d" || weatherIcon === "04n") {
-        setWicon(drizzle_icon);
-      } else if (weatherIcon === "09d" || weatherIcon === "09n") {
-        setWicon(rain_icon);
-      } else if (weatherIcon === "10d" || weatherIcon === "10n") {
-        setWicon(rain_icon);
-      } else if (weatherIcon === "13d" || weatherIcon === "13n") {
-        setWicon(snow_icon);
+
+      if (response.ok) {
+        setWeatherData({
+          humidity: `${data.main.humidity}%`,
+          windSpeed: `${Math.floor(data.wind.speed)} km/h`,
+          temperature: `${Math.floor(data.main.temp)}°C`,
+          location: data.name,
+        });
+
+        setWicon(weatherIcons[data.weather[0].icon] || clear_icon);
+        setError(null);
       } else {
-        setWicon(clear_icon);
+        setError(data.message);
       }
     } catch (error) {
       console.error("Error fetching data:", error);
+      setError("An error occurred while fetching data.");
     }
-  }
+  };
+
+  useEffect(() => {
+    if (searchQuery) {
+      search();
+    }
+  }, [searchQuery]);
 
   return (
     <div className='container'>
       <div className='top-bar'>
-        <input type="text" className='searchinput' placeholder='Search Location'/>
-        <div className='search-icon' onClick={() => search()}>
-          <img src={search_icon} alt=""/>
+        <input
+          type="text"
+          className='searchinput'
+          placeholder='Search Location'
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+        <div className='search-icon' onClick={search}>
+          <img src={search_icon} alt="search" />
         </div>
       </div>
+      {error && <div className='error-message'>{error}</div>}
       <div className="weather-image">
-        <img src={wicon} alt="" />
+        <img src={wicon} alt="weather icon" />
       </div>
       <div className="weather-temp">{weatherData.temperature}</div>
       <div className="weather-location">{weatherData.location}</div>
       <div className="data-container">
         <div className="element">
-          <img src={humidity_icon} alt="" className="icon" />
+          <img src={humidity_icon} alt="humidity icon" className="icon" />
           <div className="data">
             <div className="humidity-percent">{weatherData.humidity}</div>
             <div className="text">Humidity</div>
           </div>
         </div>
         <div className="element">
-          <img src={wind_icon} alt="" className="icon" />
+          <img src={wind_icon} alt="wind icon" className="icon" />
           <div className="data">
             <div className="wind-rate">{weatherData.windSpeed}</div>
             <div className="text">Wind Speed</div>
@@ -92,6 +112,6 @@ const Weather = () => {
       </div>
     </div>
   );
-}
+};
 
 export default Weather;
